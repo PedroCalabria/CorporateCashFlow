@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Dependências
+/node_modules/
+
+# Build gerado pelo Vite
+/dist/
+/dist-ssr/
+
+# Arquivos de ambiente locais (não versionar senhas/chaves)
+.env
+.env.local
+.env.*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db

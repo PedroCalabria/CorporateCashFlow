@@ -1,0 +1,6 @@
+@CorporateCashFlow_HostAddress = http://localhost:5221
+
+GET {{CorporateCashFlow_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
