@@ -1,0 +1,434 @@
+openapi: 3.0.3
+
+info:
+  title: Corporate Cash Flow API
+  version: 1.0.0
+  description: >
+    Corporate Cash Flow & Treasury Management System.
+    Multi-subsidiary isolation via SubsidiaryId claim in JWT.
+    All error responses conform to RFC 7807 Problem Details.
+  license:
+    name: Proprietary
+
+servers:
+  - url: /api
+    description: API base path
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT token issued by POST /auth/login.
+        Contains claims: UserId (uuid), Role (Admin | Editor | Auditor),
+        SubsidiaryId (uuid | null for Global Admin).
+
+  schemas:
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address of the user.
+          example: jane.doe@example.com
+        password:
+          type: string
+          minLength: 8
+          description: Account password (minimum 8 characters).
+          example: "S3cur3P@ss"
+
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - refreshToken
+        - expiresAt
+      properties:
+        token:
+          type: string
+          description: Signed JWT containing UserId, Role, and SubsidiaryId claims.
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: Initial single-use rotating refresh token issued at login.
+          example: "aW5pdGlhbFJlZnJlc2hUb2tlbg..."
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp at which the token expires.
+          example: "2026-06-14T07:00:00Z"
+
+    UserContextResponse:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - subsidiaryId
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the authenticated user.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        name:
+          type: string
+          description: Display name of the authenticated user.
+          example: "Jane Doe"
+        email:
+          type: string
+          format: email
+          description: Email address of the authenticated user.
+          example: "jane.doe@example.com"
+        role:
+          type: string
+          enum:
+            - Admin
+            - Editor
+            - Auditor
+          description: >
+            RBAC role assigned to the user.
+            Admin: full management access.
+            Editor: create/edit transactions.
+            Auditor: read-only access including audit history.
+          example: "Editor"
+        subsidiaryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: >
+            UUID of the subsidiary the user is scoped to.
+            Null for Global Admin accounts that span all subsidiaries.
+          example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+
+    ErrorResponse:
+      type: object
+      description: RFC 7807 Problem Details for HTTP APIs.
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type.
+          example: "https://tools.ietf.org/html/rfc7807"
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+          example: "Unauthorized"
+        status:
+          type: integer
+          description: HTTP status code.
+          example: 401
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence.
+          example: "Invalid email or password."
+        instance:
+          type: string
+          description: URI reference of the specific occurrence of the problem.
+          example: "/api/auth/login"
+        errors:
+          type: object
+          nullable: true
+          description: >
+            Optional field-level validation errors (present on 400 responses).
+            Keys are field names; values are arrays of error messages.
+          example:
+            email:
+              - "Must be a valid email address."
+
+    TokenRefreshRequest:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+      properties:
+        accessToken:
+          type: string
+          description: >
+            The current (or recently expired) access token.
+            Included for server-side session binding validation.
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: >
+            The single-use rotating refresh token issued by the last successful
+            login or token refresh. Will be permanently invalidated on use.
+          example: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+
+    TokenRefreshResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresAt
+      properties:
+        accessToken:
+          type: string
+          description: New signed JWT access token containing UserId, Role, and SubsidiaryId claims.
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new..."
+        refreshToken:
+          type: string
+          description: >
+            New single-use rotating refresh token. The previously submitted
+            refresh token is permanently invalidated.
+          example: "bmV3UmVmcmVzaFRva2Vu..."
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp at which the new access token expires.
+          example: "2026-06-14T15:00:00Z"
+
+paths:
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user and yield JWT
+      description: >
+        Validates the provided email/password credentials.
+        On success, returns a signed JWT token containing claims for
+        multi-subsidiary RBAC management (UserId, Role, SubsidiaryId).
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "jane.doe@example.com"
+              password: "S3cur3P@ss"
+      responses:
+        '200':
+          description: Authentication successful. Returns JWT and expiry timestamp.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "aW5pdGlhbFJlZnJlc2hUb2tlbg..."
+                expiresAt: "2026-06-14T07:00:00Z"
+        '400':
+          description: >
+            Validation error. One or more request fields are missing or malformed
+            (e.g., invalid email format, password too short).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                type: "https://tools.ietf.org/html/rfc7807"
+                title: "Validation Failed"
+                status: 400
+                detail: "One or more validation errors occurred."
+                instance: "/api/auth/login"
+                errors:
+                  email:
+                    - "Must be a valid email address."
+        '401':
+          description: >
+            Authentication failed. The provided email or password is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                type: "https://tools.ietf.org/html/rfc7807"
+                title: "Unauthorized"
+                status: 401
+                detail: "Invalid email or password."
+                instance: "/api/auth/login"
+                errors: null
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Retrieve current user context
+      description: >
+        Decodes the session token from the Authorization header and returns the
+        authenticated user's profile, explicit RBAC role, and subsidiary scope.
+        Used by the frontend to hydrate the session on application startup.
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: >
+            Returns the authenticated user's identity snapshot including
+            UserId, Name, Email, Role, and SubsidiaryId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContextResponse'
+              examples:
+                scoped_user:
+                  summary: Role-scoped user (has a subsidiary)
+                  value:
+                    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    name: "Jane Doe"
+                    email: "jane.doe@example.com"
+                    role: "Editor"
+                    subsidiaryId: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+                global_admin:
+                  summary: Global Admin (no subsidiary restriction)
+                  value:
+                    id: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
+                    name: "Admin User"
+                    email: "admin@example.com"
+                    role: "Admin"
+                    subsidiaryId: null
+        '401':
+          description: >
+            Token is missing, expired, or structurally invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_token:
+                  summary: No Authorization header provided
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "Authorization token is required."
+                    instance: "/api/auth/me"
+                    errors: null
+                expired_token:
+                  summary: Token has expired
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "The provided token has expired."
+                    instance: "/api/auth/me"
+                    errors: null
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Renew expired Access Token using a Refresh Token
+      description: >
+        Validates a rotating refresh token against the server-side whitelist.
+        On success, issues a new access token and a new refresh token (rotating),
+        and permanently invalidates the submitted refresh token (single-use).
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+            example:
+              accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              refreshToken: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+      responses:
+        '200':
+          description: >
+            Token renewal successful. Returns a new access token, a new rotating
+            refresh token, and the updated expiry timestamp.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new..."
+                refreshToken: "bmV3UmVmcmVzaFRva2Vu..."
+                expiresAt: "2026-06-14T15:00:00Z"
+        '400':
+          description: >
+            Malformed request payload. One or more required fields are missing
+            or structurally invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                type: "https://tools.ietf.org/html/rfc7807"
+                title: "Validation Failed"
+                status: 400
+                detail: "One or more validation errors occurred."
+                instance: "/api/auth/refresh"
+                errors:
+                  refreshToken:
+                    - "The refreshToken field is required."
+        '401':
+          description: >
+            Refresh token is expired, revoked, already consumed, or structurally invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_refresh:
+                  summary: Refresh token has exceeded its lifetime
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "The refresh token has expired."
+                    instance: "/api/auth/refresh"
+                    errors: null
+                revoked_refresh:
+                  summary: Refresh token was already used (rotation violation)
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "The refresh token has already been used or revoked."
+                    instance: "/api/auth/refresh"
+                    errors: null
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Invalidate current user session
+      description: >
+        Blacklists or clears the current JWT session context on the server side.
+        Requires a valid Bearer token. Returns 204 No Content on success.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Session successfully invalidated. No response body.
+        '401':
+          description: >
+            Token is missing, invalid, or already invalidated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_token:
+                  summary: No Authorization header provided
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "Authorization token is required."
+                    instance: "/api/auth/logout"
+                    errors: null
+                invalid_token:
+                  summary: Token is invalid or already logged out
+                  value:
+                    type: "https://tools.ietf.org/html/rfc7807"
+                    title: "Unauthorized"
+                    status: 401
+                    detail: "The provided token is invalid or the session has already been terminated."
+                    instance: "/api/auth/logout"
+                    errors: null

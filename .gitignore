@@ -1,0 +1,17 @@
+# Build / dependencies
+node_modules/
+dist/
+build/
+*.log
+.env*
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# OS
+.DS_Store
+Thumbs.db

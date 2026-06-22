@@ -21,10 +21,11 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
+- **Enterprise monorepo (default)**: `backend/API.Business/`, `backend/API.Repository.Implementation/`,
+  `frontend/src/features/`, `frontend/src/mocks/`, `specs/openapi.yaml`
 - **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- Paths shown below assume enterprise monorepo — adjust based on plan.md structure
 
 <!--
   ============================================================================
@@ -63,12 +64,13 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Update `/specs/openapi.yaml` with foundational endpoints for this feature
+- [ ] T005 Setup database schema and EF Core migrations (include `SubsidiaryId` on scoped entities)
+- [ ] T006 [P] Implement JWT auth with UserId/Role/SubsidiaryId claims and RBAC middleware
+- [ ] T007 [P] Override `SaveChangesAsync` for automated JSON audit trail (OldValues/NewValues)
+- [ ] T008 [P] Setup MSW handlers in `frontend/src/mocks/` mapped 100% to OpenAPI spec
+- [ ] T009 Create repository interfaces in `backend/API.Business/` per DIP
+- [ ] T010 Configure TanStack Query provider and URL query-string filter sync
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

@@ -18,29 +18,39 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Language/Version**: Backend .NET 8; Frontend TypeScript (React + Vite)
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Primary Dependencies**: EF Core, Dapper, TanStack Query, Shadcn/ui, MSW (see constitution)
 
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Storage**: SQL Server (single database, `SubsidiaryId` column isolation)
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Testing**: [e.g., xUnit, Vitest, Playwright or NEEDS CLARIFICATION]
 
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Target Platform**: Web (responsive desktop/tablet/mobile browsers)
 
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
+**Project Type**: Enterprise Monorepo (Frontend & Backend)
 
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Performance Goals**: [domain-specific, e.g., dashboard p95 < 500ms via Dapper or NEEDS CLARIFICATION]
 
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
+**Constraints**: OpenAPI contract-first; DIP; RBAC; automated audit trail (see constitution)
 
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Scale/Scope**: Corporate Cash Flow & Treasury Management with multi-subsidiary isolation
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify compliance with `.specify/memory/constitution.md`:
+
+- [ ] OpenAPI contract defined or updated in `/specs/openapi.yaml` before implementation
+- [ ] `SubsidiaryId` isolation in data model and API design
+- [ ] RBAC roles (Admin, Editor, Auditor) mapped to endpoint authorization
+- [ ] CQS split documented (EF Core writes vs Dapper reads where applicable)
+- [ ] Audit trail coverage for new mutating entities
+- [ ] MSW handlers planned for new/changed endpoints
+- [ ] Frontend feature folder under `/src/features/` and URL filter sync identified
+- [ ] DIP respected: interfaces in `API.Business`, implementations in `API.Repository.Implementation`
+- [ ] Controllers remain lean (no business or database logic)
 
 ## Project Structure
 
@@ -77,20 +87,21 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+# Enterprise monorepo (Corporate Cash Flow — default for this project)
 backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+├── API.Business/                    # Domain logic + repository interfaces
+├── API.Repository.Implementation/   # EF Core + Dapper implementations
+└── [API host project]/              # Lean controllers only
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
+│   ├── features/                    # Feature-based modules (auth, transactions, …)
+│   ├── components/                  # Shared UI (Shadcn/ui)
+│   └── mocks/                       # MSW handlers (OpenAPI-aligned)
 └── tests/
+
+specs/
+└── openapi.yaml                     # Single source of truth for API contracts
 
 # [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
 api/

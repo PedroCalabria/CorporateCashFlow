@@ -81,8 +81,9 @@
 ## Requirements *(mandatory)*
 
 <!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
+  ACTION REQUIRED: Fill functional requirements below.
+  Constitution constraints: OpenAPI contract-first (/specs/openapi.yaml), SubsidiaryId
+  isolation, RBAC (Admin/Editor/Auditor), audit trail for mutations, English UI.
 -->
 
 ### Functional Requirements

@@ -1,50 +1,196 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: template (unversioned placeholders) → 1.0.0
+- Modified principles: none (initial definition from template)
+- Added principles:
+  - I. Contract-First Development (OpenAPI / SDD)
+  - II. Backend Clean Architecture & Dependency Inversion
+  - III. Multi-Subsidiary Isolation & RBAC Security
+  - IV. Frontend Feature Architecture & UX Standards
+  - V. Compliance & Automated Audit Trail
+- Added sections:
+  - Technology Stack & Monorepo Scope
+  - Development Workflow & Quality Gates
+- Removed sections: none (template placeholders replaced)
+- Templates:
+  - ✅ .specify/templates/plan-template.md
+  - ✅ .specify/templates/spec-template.md
+  - ✅ .specify/templates/tasks-template.md
+  - ⚠ README.md (minimal; no runtime guidance doc yet)
+- Follow-up TODOs: none
+-->
+
+# Corporate Cash Flow Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Contract-First Development (OpenAPI / SDD)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+The OpenAPI specification at `/specs/openapi.yaml` is the single source of truth for all API
+contracts.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- All backend endpoints and frontend API clients MUST conform to the spec before integration.
+- Code generation or manual implementation MUST strictly satisfy defined contracts; drift is
+  prohibited.
+- Frontend development MUST use Mock Service Worker (MSW) handlers mapped 100% to the OpenAPI
+  spec to enable isolated parallel development.
+- Contract changes MUST update the OpenAPI spec first, then propagate to backend, MSW mocks,
+  and clients.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: Spec-driven development decouples frontend and backend teams, prevents
+integration surprises, and preserves a verifiable contract boundary.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Backend Clean Architecture & Dependency Inversion
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+The backend follows a Clean/Layered architecture with strict Dependency Inversion Principle
+(DIP).
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Stack: .NET 8 Web API, SQL Server, EF Core, Dapper.
+- `API.Business` MUST contain all repository interfaces and core domain logic.
+- `API.Repository.Implementation` MUST reference `API.Business` and implement those
+  interfaces—never the reverse.
+- Controllers MUST be lean: zero business logic and zero direct database access.
+- Command Query Separation (CQS): EF Core for standard writes/mutations; Dapper for heavy read
+  queries and dashboards.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: DIP keeps domain logic testable and independent of infrastructure; CQS optimizes
+write consistency and read performance.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Multi-Subsidiary Isolation & RBAC Security
+
+The system is a Corporate Cash Flow & Treasury Management platform with multi-subsidiary
+isolation.
+
+- Database strategy: single database with column-based tenant isolation via `SubsidiaryId` on
+  all subsidiary-scoped entities.
+- All queries and mutations MUST enforce `SubsidiaryId` filtering derived from authenticated
+  context—no cross-subsidiary data leakage.
+- Security model: Role-Based Access Control (RBAC) with roles Admin, Editor, and Auditor.
+- Authentication: manual JWT implementation with Claims for `UserId`, `Role`, and
+  `SubsidiaryId`.
+- Authorization checks MUST occur before business logic executes.
+
+**Rationale**: Treasury data demands strict tenant boundaries and auditable role separation.
+
+### IV. Frontend Feature Architecture & UX Standards
+
+The frontend follows a feature-based architecture with server-driven state and consistent UX.
+
+- Stack: React, Vite, TypeScript, Tailwind CSS, Shadcn/ui, TanStack Query, React Hook Form.
+- Structure: feature folders under `/src/features/` (e.g., `auth`, `transactions`).
+- State: server-driven via TanStack Query; UI filters (subsidiary, date ranges) MUST sync to
+  URL query strings.
+- Design: responsive across devices; follow UX best practices.
+- Theme: dark mode default with user-selectable light mode toggle.
+- Language: English for all UI text and user-facing copy.
+
+**Rationale**: Feature isolation scales team delivery; URL-synced filters enable shareable
+views; consistent UX reduces operational error in financial workflows.
+
+### V. Compliance & Automated Audit Trail
+
+Financial and treasury operations require immutable change history.
+
+- EF Core `SaveChangesAsync` MUST be overridden to capture audit records automatically.
+- Each audit entry MUST serialize changes as JSON with `OldValues` and `NewValues`.
+- Audit trail MUST cover all mutating operations on governed entities without manual
+  per-endpoint logging.
+- Auditor role MUST have read access to audit history without mutate privileges on governed
+  data.
+
+**Rationale**: Automated audit trails satisfy compliance requirements and eliminate
+inconsistent manual logging.
+
+## Technology Stack & Monorepo Scope
+
+**Project Type**: Enterprise Monorepo (Frontend & Backend)
+
+**Scope**: Corporate Cash Flow & Treasury Management System with multi-subsidiary isolation.
+
+### Repository Layout
+
+```text
+corporate_cash_flow/
+├── backend/          # .NET 8 Web API solution (API.Business, API.Repository.Implementation)
+├── frontend/         # React + Vite application
+└── specs/
+    └── openapi.yaml  # API contract (single source of truth)
+```
+
+### Backend Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | .NET 8 Web API |
+| Database | SQL Server |
+| ORM (writes) | EF Core |
+| Queries (reads) | Dapper |
+| Auth | Manual JWT (`UserId`, `Role`, `SubsidiaryId` claims) |
+
+### Frontend Stack
+
+| Concern | Technology |
+|---------|------------|
+| Framework | React + Vite + TypeScript |
+| Styling | Tailwind CSS + Shadcn/ui |
+| Data fetching | TanStack Query |
+| Forms | React Hook Form |
+| Mocking | MSW (mandatory, OpenAPI-aligned) |
+
+## Development Workflow & Quality Gates
+
+### Feature Delivery Order
+
+1. Update or confirm OpenAPI contract in `/specs/openapi.yaml`.
+2. Implement backend domain logic in `API.Business`; repository implementations in
+   `API.Repository.Implementation`.
+3. Expose lean controllers that delegate to business services.
+4. Implement or update MSW handlers mirroring the spec for frontend parallel work.
+5. Build frontend features under `/src/features/` consuming TanStack Query hooks.
+6. Integrate only after contract compliance is verified on both sides.
+
+### Constitution Check Gates (for `/speckit-plan`)
+
+Every implementation plan MUST verify:
+
+- [ ] OpenAPI contract defined or updated before implementation
+- [ ] `SubsidiaryId` isolation accounted for in data model and API design
+- [ ] RBAC roles (Admin, Editor, Auditor) mapped to endpoint authorization
+- [ ] CQS split documented (EF Core writes vs Dapper reads where applicable)
+- [ ] Audit trail coverage for new mutating entities
+- [ ] MSW handlers planned for new/changed endpoints
+- [ ] Frontend feature folder and URL filter sync identified
+
+### Pull Request Requirements
+
+- PRs MUST demonstrate constitution compliance in description or checklist.
+- API changes MUST include OpenAPI spec diff.
+- Frontend PRs touching API consumption MUST include MSW handler updates.
+- Violations of DIP, lean controller, or subsidiary isolation rules MUST be rejected or
+  documented in Complexity Tracking with justification.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes ad-hoc conventions for the Corporate Cash Flow monorepo.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Procedure**:
+
+- Proposed changes MUST be documented with rationale and version bump type
+  (MAJOR/MINOR/PATCH).
+- Run `/speckit-constitution` to apply amendments and propagate to dependent templates.
+- MAJOR bumps indicate backward-incompatible governance or principle removals.
+
+**Versioning Policy**:
+
+- MAJOR: Principle removal or incompatible redefinition
+- MINOR: New principle, section, or materially expanded guidance
+- PATCH: Clarifications, wording, non-semantic refinements
+
+**Compliance Review**:
+
+- All feature specs, plans, and task lists MUST pass Constitution Check gates.
+- `/speckit-analyze` SHOULD be run after task generation to validate cross-artifact
+  consistency.
+- Complexity deviations MUST be recorded in plan.md Complexity Tracking table.
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-13 | **Last Amended**: 2026-06-13
